@@ -25,9 +25,6 @@ class SerialDatagram:
         buf = buf.replace(cls.ESC + cls.ESC_ESC,
                           cls.ESC)
         frame = b''+buf[:-4]
-        print(binascii.hexlify(frame))
-        print(binascii.hexlify(buf))
-        print(binascii.hexlify(SerialDatagram.crc32(frame)))
         if len(buf) < 4:
             raise cls.DecodeError('frame error')
         elif SerialDatagram.crc32(frame) != buf[-4:]:
@@ -59,7 +56,6 @@ class SerialDatagram:
                 if b == SerialDatagram.END:
                     break
                 buf += b
-            print(binascii.hexlify(buf))
             return buf
         while True:
             try:
@@ -72,21 +68,37 @@ if __name__ == "__main__":
     import argparse
 
     def w(fdesc):
-        for line in sys.stdin:
-            SerialDatagram(fdesc).send(line.encode('ascii', 'ignore'))
+        for line in sys.stdin.readlines():
+            SerialDatagram(fdesc).send(line.encode('ascii', 'ignore')+b'\0')
             fdesc.flush()
 
     def r(fdesc):
         for dtgrm in SerialDatagram(fdesc).receive():
             print(dtgrm)
 
-    if len(sys.argv) in [2, 3]:
+    if len(sys.argv) > 1:
         if sys.argv[1] == 'r':
-            fd = os.fdopen(0, "rb")
+            fd = os.fdopen(sys.stdin.fileno(), "rb")
+            r(fd)
+        if sys.argv[1] == 'rs':
+            import serial
+            if len(sys.argv) > 3:
+                baud = sys.argv[3]
+            else:
+                baud = 115200
+            fd = serial.Serial(sys.argv[2], baudrate=baud)
             r(fd)
         if sys.argv[1] == 'w':
-            fd = os.fdopen(1, "wb")
+            fd = os.fdopen(sys.stdout.fileno(), "wb")
             w(fd)
+        if sys.argv[1] == 'ws':
+            import serial
+            if len(sys.argv) > 3:
+                baud = sys.argv[3]
+            else:
+                baud = 115200
+            fd = serial.Serial(sys.argv[2], baudrate=baud)
+            r(fd)
     else:
         print("usage: {} r # to read".format(sys.argv[0]))
         print("usage: {} w # to write".format(sys.argv[0]))
