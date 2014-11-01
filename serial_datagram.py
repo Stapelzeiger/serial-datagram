@@ -73,8 +73,12 @@ if __name__ == "__main__":
             fdesc.flush()
 
     def r(fdesc):
+        import msgpack
+        import pprint
         for dtgrm in SerialDatagram(fdesc).receive():
-            print(dtgrm)
+            print('size = ' + str(len(dtgrm)) + ' bytes')
+            pprint.pprint(msgpack.unpackb(dtgrm), width = 10)
+            # print(dtgrm)
 
     if len(sys.argv) > 1:
         if sys.argv[1] == 'r':
